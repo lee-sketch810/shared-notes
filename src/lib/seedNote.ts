@@ -36,6 +36,13 @@ function linkPara(text: string, href: string): PartialBlock {
 
 export const SEED_NOTES: SeedNote[] = [
   {
+    id: "b0bc0d19-0000-4000-8000-000000000000",
+    title: "홈",
+    content: [
+      { type: "image", props: { url: asset("notion-import/intro-image.png") } },
+    ],
+  },
+  {
     id: "b0bc0d19-0000-4000-8000-000000000001",
     title: "기본 용어 정리",
     content: [
@@ -44,7 +51,6 @@ export const SEED_NOTES: SeedNote[] = [
         content:
           "이 노트는 팀원 누구나 같이 작성할 수 있는 공유 노트입니다.",
       },
-      { type: "image", props: { url: asset("notion-import/intro-image.png") } },
       { type: "heading", props: { level: 2 }, content: "모델 관련" },
       bullet(
         "LLM (거대언어모델)",
