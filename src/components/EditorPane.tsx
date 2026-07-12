@@ -60,6 +60,30 @@ export default function EditorPane({
       note.content && note.content.length > 0 ? note.content : undefined,
   });
 
+  useEffect(() => {
+    if (!store.canEdit) return;
+
+    const handleImagePaste = (event: ClipboardEvent) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest(".ProseMirror")) return;
+
+      const imageItem = Array.from(event.clipboardData?.items ?? []).find(
+        (item) => item.kind === "file" && item.type.startsWith("image/")
+      );
+      const file = imageItem?.getAsFile();
+      if (!file) return;
+
+      event.preventDefault();
+      void fileToDataUrl(file).then((url) => {
+        const lastBlock = editor.document[editor.document.length - 1];
+        editor.insertBlocks([{ type: "image", props: { url } }], lastBlock, "after");
+      });
+    };
+
+    document.addEventListener("paste", handleImagePaste, true);
+    return () => document.removeEventListener("paste", handleImagePaste, true);
+  }, [editor, store.canEdit]);
+
   function scheduleSave(patch: { title?: string; content?: unknown }) {
     pendingRef.current = { ...pendingRef.current, ...patch };
     setSaveState("dirty");
