@@ -40,6 +40,7 @@ export const SEED_NOTES: SeedNote[] = [
     title: "홈",
     content: [
       { type: "image", props: { url: asset("notion-import/intro-image.png") } },
+      { type: "paragraph", content: "" },
     ],
   },
   {
