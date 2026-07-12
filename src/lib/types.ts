@@ -35,6 +35,7 @@ export interface NoteStore {
     patch: { title?: string; content?: PartialBlock[] }
   ): Promise<void>;
   deleteNote(id: string): Promise<void>;
+  reorderNotes(ids: string[]): Promise<void>;
   listShares(noteId: string): Promise<string[]>;
   addShare(noteId: string, email: string): Promise<void>;
   removeShare(noteId: string, email: string): Promise<void>;

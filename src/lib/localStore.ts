@@ -141,6 +141,16 @@ export function createLocalStore(userEmail: string): NoteStore {
       notifyOthers();
     },
 
+    async reorderNotes(ids) {
+      const notes = load();
+      ids.forEach((id, index) => {
+        const note = notes.find((n) => n.id === id);
+        if (note) note.sortKey = index;
+      });
+      persist(notes);
+      notifyOthers();
+    },
+
     async listShares(noteId) {
       return load().find((n) => n.id === noteId)?.shares ?? [];
     },

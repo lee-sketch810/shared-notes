@@ -1,4 +1,7 @@
+import { useState } from "react";
 import type { NoteMeta } from "../lib/types";
+
+const HOME_NOTE_ID = "b0bc0d19-0000-4000-8000-000000000000";
 
 interface Props {
   notes: NoteMeta[];
@@ -10,6 +13,7 @@ interface Props {
   onHome: () => void;
   onCreate: () => void;
   onDelete: (id: string) => void;
+  onMove: (sourceId: string, targetId: string) => void;
   onSignOut?: () => void;
 }
 
@@ -33,8 +37,10 @@ export default function Sidebar({
   onHome,
   onCreate,
   onDelete,
+  onMove,
   onSignOut,
 }: Props) {
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -61,9 +67,35 @@ export default function Sidebar({
         {notes.map((n) => (
           <li
             key={n.id}
-            className={`note-item ${n.id === selectedId ? "selected" : ""}`}
+            className={`note-item ${n.id === selectedId ? "selected" : ""} ${
+              dragOverId === n.id ? "drag-over" : ""
+            }`}
+            draggable={canEdit && n.id !== HOME_NOTE_ID}
+            onDragStart={(event) => {
+              event.dataTransfer.setData("text/note-id", n.id);
+              event.dataTransfer.effectAllowed = "move";
+            }}
+            onDragOver={(event) => {
+              if (!canEdit || n.id === HOME_NOTE_ID) return;
+              event.preventDefault();
+              event.dataTransfer.dropEffect = "move";
+              setDragOverId(n.id);
+            }}
+            onDragLeave={() => setDragOverId(null)}
+            onDrop={(event) => {
+              event.preventDefault();
+              setDragOverId(null);
+              const sourceId = event.dataTransfer.getData("text/note-id");
+              if (sourceId && sourceId !== n.id) onMove(sourceId, n.id);
+            }}
+            onDragEnd={() => setDragOverId(null)}
             onClick={() => onSelect(n.id)}
           >
+            {canEdit && n.id !== HOME_NOTE_ID && (
+              <span className="note-drag-handle" title="끌어서 순서 변경">
+                ⋮⋮
+              </span>
+            )}
             <div className="note-item-main">
               <span className="note-item-title">
                 {n.title || "제목 없음"}

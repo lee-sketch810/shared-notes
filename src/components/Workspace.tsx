@@ -4,6 +4,8 @@ import Sidebar from "./Sidebar";
 import EditorPane from "./EditorPane";
 import ShareDialog from "./ShareDialog";
 
+const HOME_NOTE_ID = "b0bc0d19-0000-4000-8000-000000000000";
+
 interface Props {
   user: AppUser;
   store: NoteStore;
@@ -98,6 +100,22 @@ export default function Workspace({ user, store, onSignOut }: Props) {
     await refreshList();
   }
 
+  async function handleMove(sourceId: string, targetId: string) {
+    const sourceIndex = notes.findIndex((item) => item.id === sourceId);
+    const targetIndex = notes.findIndex((item) => item.id === targetId);
+    if (sourceIndex < 1 || targetIndex < 1 || sourceIndex === targetIndex) return;
+
+    const reordered = [...notes];
+    const [moved] = reordered.splice(sourceIndex, 1);
+    reordered.splice(targetIndex, 0, moved);
+    setNotes(reordered);
+    try {
+      await store.reorderNotes(reordered.map((item) => item.id));
+    } catch {
+      await refreshList();
+    }
+  }
+
   async function handleSaved() {
     // 저장 후 목록의 제목·시간 갱신 (로컬 변경이므로 배너는 띄우지 않음)
     await refreshList();
@@ -125,10 +143,12 @@ export default function Workspace({ user, store, onSignOut }: Props) {
         canEdit={store.canEdit}
         onSelect={openNote}
         onHome={() => {
-          if (notes.length > 0) void openNote(notes[0].id);
+          const home = notes.find((item) => item.id === HOME_NOTE_ID) ?? notes[0];
+          if (home) void openNote(home.id);
         }}
         onCreate={handleCreate}
         onDelete={handleDelete}
+        onMove={handleMove}
         onSignOut={onSignOut}
       />
       <main className="main-pane">

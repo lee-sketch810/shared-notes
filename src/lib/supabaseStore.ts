@@ -122,6 +122,19 @@ export function createSupabaseStore(
       if (error) throw error;
     },
 
+    async reorderNotes(ids) {
+      const results = await Promise.all(
+        ids.map((id, index) =>
+          supabase
+            .from("notes")
+            .update({ sort_key: index, updated_by_email: actor })
+            .eq("id", id)
+        )
+      );
+      const failed = results.find((result) => result.error);
+      if (failed?.error) throw failed.error;
+    },
+
     async listShares(noteId) {
       void noteId;
       return [];

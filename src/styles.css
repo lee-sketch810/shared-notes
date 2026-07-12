@@ -184,6 +184,27 @@ input {
   gap: 4px;
 }
 
+.note-item[draggable="true"] {
+  cursor: grab;
+}
+
+.note-item[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.note-item.drag-over {
+  box-shadow: inset 0 2px 0 #2563eb;
+}
+
+.note-drag-handle {
+  flex: 0 0 auto;
+  color: #9ca3af;
+  font-size: 14px;
+  letter-spacing: -3px;
+  margin-right: 5px;
+  user-select: none;
+}
+
 .note-item:hover {
   background: #ecebe7;
 }
