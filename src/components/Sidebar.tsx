@@ -41,6 +41,28 @@ export default function Sidebar({
   onSignOut,
 }: Props) {
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [readLinkCopied, setReadLinkCopied] = useState(false);
+
+  function copyReadOnlyLink() {
+    const url = new URL(window.location.href);
+    url.search = "";
+    url.hash = "";
+    const text = url.toString();
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    textarea.remove();
+    if (navigator.clipboard) {
+      void navigator.clipboard.writeText(text).catch(() => undefined);
+    }
+    setReadLinkCopied(true);
+    window.setTimeout(() => setReadLinkCopied(false), 1800);
+  }
+
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -124,6 +146,9 @@ export default function Sidebar({
       </ul>
 
       <div className="sidebar-footer">
+        <button className="copy-read-link" onClick={copyReadOnlyLink}>
+          {readLinkCopied ? "복사됨 ✓" : "[읽기] 공유 주소 링크 복사"}
+        </button>
         <span className="user-email" title={userEmail}>
           {userEmail}
         </span>
