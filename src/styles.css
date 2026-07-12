@@ -458,3 +458,133 @@ input {
   margin-top: 16px;
   text-align: right;
 }
+
+/* ---------- 모바일 ---------- */
+@media (max-width: 700px) {
+  .app-shell {
+    height: 100dvh;
+    min-height: 0;
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: 0;
+    flex: 0 0 auto;
+    border-right: 0;
+    border-bottom: 1px solid #e6e4df;
+  }
+
+  .sidebar-header {
+    padding: 8px 10px 6px;
+  }
+
+  .sidebar-logo {
+    font-size: 14px;
+  }
+
+  .note-list {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 5px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 4px 8px 7px;
+    scrollbar-width: thin;
+  }
+
+  .note-item {
+    min-width: 142px;
+    max-width: 180px;
+    padding: 6px 8px;
+    border: 1px solid #e6e4df;
+    background: #fff;
+  }
+
+  .note-item.selected {
+    border-color: #9ca3af;
+    background: #e3e2de;
+  }
+
+  .note-drag-handle,
+  .note-item-time {
+    display: none;
+  }
+
+  .note-item-delete {
+    visibility: visible;
+  }
+
+  .sidebar-footer {
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 10px;
+  }
+
+  .copy-read-link {
+    flex: 1;
+    width: auto;
+    padding: 6px 8px;
+  }
+
+  .user-email {
+    max-width: 82px;
+  }
+
+  .main-pane {
+    min-width: 0;
+    min-height: 0;
+    width: 100%;
+  }
+
+  .editor-pane {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 12px 12px 80px;
+  }
+
+  .editor-toolbar {
+    min-height: 34px;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .title-input {
+    font-size: 27px;
+    padding: 8px 2px 12px;
+  }
+
+  .editor-pane .bn-container,
+  .editor-pane .bn-editor {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .editor-pane .bn-editor {
+    padding-inline: 2px;
+  }
+
+  .editor-content img,
+  .editor-content video,
+  .editor-content audio {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .editor-content [data-file-block] .bn-file-block-content-wrapper {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .remote-banner {
+    padding: 7px 10px;
+    flex-wrap: wrap;
+  }
+
+  .dialog {
+    max-width: calc(100vw - 20px);
+    padding: 18px;
+  }
+}
