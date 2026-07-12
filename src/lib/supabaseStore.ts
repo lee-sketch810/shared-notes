@@ -27,21 +27,22 @@ function toMeta(r: NoteRow): NoteMeta {
 /** Supabase 기반 공유 저장소 — RLS로 소유자·공유대상만 접근 가능 */
 export function createSupabaseStore(
   supabase: SupabaseClient,
-  userId: string,
-  userEmail: string
+  canEdit: boolean
 ): NoteStore {
+  const actor = canEdit ? `링크 편집자-${crypto.randomUUID().slice(0, 6)}` : "읽기 전용";
   return {
     mode: "supabase",
-    actorId: userEmail,
+    canEdit,
+    actorId: actor,
 
     async ensureSeeded() {
       // 계정당 1회만 시도 (중복 생성 방지). 이미 노트가 있으면 심지 않음.
-      const flag = `shared-notes-supabase-seeded-${userId}`;
+      if (!canEdit) return;
+      const flag = "shared-notes-link-seeded-v1";
       if (localStorage.getItem(flag)) return;
       const { count, error: cErr } = await supabase
         .from("notes")
-        .select("id", { count: "exact", head: true })
-        .eq("owner_id", userId);
+        .select("id", { count: "exact", head: true });
       if (cErr) throw cErr;
       if ((count ?? 0) === 0) {
         const now = new Date().toISOString();
@@ -49,8 +50,7 @@ export function createSupabaseStore(
           id: s.id,
           title: s.title,
           content: s.content,
-          owner_id: userId,
-          owner_email: userEmail,
+          owner_email: "링크 편집자",
           updated_by_email: null,
           updated_at: now,
           sort_key: i + 1,
@@ -93,9 +93,8 @@ export function createSupabaseStore(
         .insert({
           title: "",
           content: null,
-          owner_id: userId,
-          owner_email: userEmail,
-          updated_by_email: userEmail,
+          owner_email: "링크 편집자",
+          updated_by_email: actor,
           sort_key: Date.now(),
         })
         .select(
@@ -110,7 +109,7 @@ export function createSupabaseStore(
     async saveNote(id, patch) {
       const update: Record<string, unknown> = {
         updated_at: new Date().toISOString(),
-        updated_by_email: userEmail,
+        updated_by_email: actor,
       };
       if (patch.title !== undefined) update.title = patch.title;
       if (patch.content !== undefined) update.content = patch.content;
@@ -124,28 +123,18 @@ export function createSupabaseStore(
     },
 
     async listShares(noteId) {
-      const { data, error } = await supabase
-        .from("note_shares")
-        .select("email")
-        .eq("note_id", noteId);
-      if (error) throw error;
-      return (data as { email: string }[]).map((r) => r.email);
+      void noteId;
+      return [];
     },
 
     async addShare(noteId, email) {
-      const { error } = await supabase
-        .from("note_shares")
-        .insert({ note_id: noteId, email: email.trim().toLowerCase() });
-      if (error) throw error;
+      void noteId;
+      void email;
     },
 
     async removeShare(noteId, email) {
-      const { error } = await supabase
-        .from("note_shares")
-        .delete()
-        .eq("note_id", noteId)
-        .eq("email", email);
-      if (error) throw error;
+      void noteId;
+      void email;
     },
 
     onRemoteChange(cb) {
@@ -154,11 +143,6 @@ export function createSupabaseStore(
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "notes" },
-          () => cb()
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "note_shares" },
           () => cb()
         )
         .subscribe();

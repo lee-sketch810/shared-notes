@@ -140,7 +140,7 @@ export default function EditorPane({
           {saveState === "dirty" && "수정됨"}
           {saveState === "saved" && "저장됨 ✓"}
         </span>
-        {store.mode === "local" && (
+        {store.canEdit && store.mode === "local" && (
           <>
             <input
               ref={fileInputRef}
@@ -180,6 +180,7 @@ export default function EditorPane({
         className="title-input"
         placeholder="제목 없음"
         value={title}
+        readOnly={!store.canEdit}
         onChange={(e) => {
           setTitle(e.target.value);
           scheduleSave({ title: e.target.value });
@@ -189,6 +190,7 @@ export default function EditorPane({
         <BlockNoteView
           editor={editor}
           theme="light"
+          editable={store.canEdit}
           onChange={() => scheduleSave({ content: editor.document })}
         />
       </div>

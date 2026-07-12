@@ -1,98 +1,84 @@
--- ============================================================
--- 우리 노트 (shared-notes) Supabase 스키마
--- Supabase 대시보드 > SQL Editor 에 전체를 붙여넣고 Run 하세요.
--- ============================================================
+-- 밥 코딩 공유 노트: 공개 읽기 + 비밀 링크 편집
+create extension if not exists pgcrypto;
 
--- 1) 테이블
+create table if not exists public.workspace_config (
+  id integer primary key default 1 check (id = 1),
+  edit_key text not null default encode(gen_random_bytes(24), 'hex')
+);
+
+insert into public.workspace_config (id)
+values (1)
+on conflict (id) do nothing;
+
 create table if not exists public.notes (
   id uuid primary key default gen_random_uuid(),
   title text not null default '',
   content jsonb,
-  owner_id uuid not null references auth.users (id) on delete cascade,
-  owner_email text not null,
+  owner_email text not null default '링크 사용자',
   updated_at timestamptz not null default now(),
   updated_by_email text,
-  -- 사이드바 고정 순서 (작을수록 위). 새 노트는 생성 시각(ms)으로 맨 아래에 붙는다
   sort_key bigint not null default (extract(epoch from now()) * 1000)::bigint
 );
 
-create table if not exists public.note_shares (
-  note_id uuid not null references public.notes (id) on delete cascade,
-  email text not null,
-  primary key (note_id, email)
-);
-
--- 2) RLS 활성화
+alter table public.workspace_config enable row level security;
 alter table public.notes enable row level security;
-alter table public.note_shares enable row level security;
 
--- 3) 헬퍼 함수 (security definer — RLS 순환 참조 방지)
-create or replace function public.is_note_owner(nid uuid)
+revoke all on public.workspace_config from anon, authenticated;
+grant select, insert, update, delete on public.notes to anon, authenticated;
+
+create or replace function public.has_edit_key()
 returns boolean
 language sql
 security definer
-set search_path = public
 stable
+set search_path = public
 as $$
   select exists (
-    select 1 from notes n
-    where n.id = nid and n.owner_id = auth.uid()
+    select 1
+    from public.workspace_config
+    where id = 1
+      and edit_key = coalesce(
+        (current_setting('request.headers', true)::json ->> 'x-edit-key'),
+        ''
+      )
   );
 $$;
 
-create or replace function public.current_email()
-returns text
-language sql
-stable
-as $$
-  select lower(coalesce(auth.jwt() ->> 'email', ''));
+revoke all on function public.has_edit_key() from public;
+grant execute on function public.has_edit_key() to anon, authenticated;
+
+drop policy if exists "누구나 읽기" on public.notes;
+create policy "누구나 읽기" on public.notes
+  for select to anon, authenticated using (true);
+
+drop policy if exists "편집 링크로 추가" on public.notes;
+create policy "편집 링크로 추가" on public.notes
+  for insert to anon, authenticated with check (public.has_edit_key());
+
+drop policy if exists "편집 링크로 수정" on public.notes;
+create policy "편집 링크로 수정" on public.notes
+  for update to anon, authenticated
+  using (public.has_edit_key())
+  with check (public.has_edit_key());
+
+drop policy if exists "편집 링크로 삭제" on public.notes;
+create policy "편집 링크로 삭제" on public.notes
+  for delete to anon, authenticated using (public.has_edit_key());
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'notes'
+  ) then
+    alter publication supabase_realtime add table public.notes;
+  end if;
+end
 $$;
 
--- 4) notes 정책: 소유자 또는 공유받은 사람만 접근
-drop policy if exists "notes_select" on public.notes;
-create policy "notes_select" on public.notes
-  for select using (
-    owner_id = auth.uid()
-    or exists (
-      select 1 from public.note_shares s
-      where s.note_id = id and s.email = public.current_email()
-    )
-  );
-
-drop policy if exists "notes_insert" on public.notes;
-create policy "notes_insert" on public.notes
-  for insert with check (owner_id = auth.uid());
-
-drop policy if exists "notes_update" on public.notes;
-create policy "notes_update" on public.notes
-  for update using (
-    owner_id = auth.uid()
-    or exists (
-      select 1 from public.note_shares s
-      where s.note_id = id and s.email = public.current_email()
-    )
-  );
-
-drop policy if exists "notes_delete" on public.notes;
-create policy "notes_delete" on public.notes
-  for delete using (owner_id = auth.uid());
-
--- 5) note_shares 정책: 소유자는 관리, 공유받은 사람은 조회
---    (notes 참조는 security definer 함수를 거쳐 RLS 순환을 끊는다)
-drop policy if exists "shares_select" on public.note_shares;
-create policy "shares_select" on public.note_shares
-  for select using (
-    email = public.current_email() or public.is_note_owner(note_id)
-  );
-
-drop policy if exists "shares_insert" on public.note_shares;
-create policy "shares_insert" on public.note_shares
-  for insert with check (public.is_note_owner(note_id));
-
-drop policy if exists "shares_delete" on public.note_shares;
-create policy "shares_delete" on public.note_shares
-  for delete using (public.is_note_owner(note_id));
-
--- 6) Realtime 발행 (다른 사람의 저장을 실시간 감지)
-alter publication supabase_realtime add table public.notes;
-alter publication supabase_realtime add table public.note_shares;
+-- SQL Editor에서만 확인하고 외부에 공개하지 마세요.
+select edit_key as "비밀_편집키_복사"
+from public.workspace_config
+where id = 1;

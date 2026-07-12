@@ -122,6 +122,7 @@ export default function Workspace({ user, store, onSignOut }: Props) {
         selectedId={selectedId}
         userEmail={user.email}
         mode={store.mode}
+        canEdit={store.canEdit}
         onSelect={openNote}
         onHome={() => {
           if (notes.length > 0) void openNote(notes[0].id);
@@ -150,7 +151,7 @@ export default function Workspace({ user, store, onSignOut }: Props) {
               store={store}
               onSaved={handleSaved}
               onShare={() => setShareOpen(true)}
-              canShare={note.ownerEmail === user.email}
+              canShare={store.mode === "local" && note.ownerEmail === user.email}
             />
             {shareOpen && (
               <ShareDialog
@@ -163,9 +164,11 @@ export default function Workspace({ user, store, onSignOut }: Props) {
         ) : (
           <div className="empty-state">
             <p>왼쪽에서 노트를 선택하거나 새 노트를 만드세요.</p>
-            <button className="btn-primary" onClick={handleCreate}>
-              + 새 노트
-            </button>
+            {store.canEdit && (
+              <button className="btn-primary" onClick={handleCreate}>
+                + 새 노트
+              </button>
+            )}
           </div>
         )}
       </main>

@@ -1,10 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
-import type { Session } from "@supabase/supabase-js";
-import { supabase } from "./lib/supabase";
+import { useMemo } from "react";
+import { editKey, supabase } from "./lib/supabase";
 import { createLocalStore } from "./lib/localStore";
 import { createSupabaseStore } from "./lib/supabaseStore";
 import type { AppUser } from "./lib/types";
-import Login from "./components/Login";
 import Workspace from "./components/Workspace";
 
 const LOCAL_USER: AppUser = { id: "local-user", email: "demo@local" };
@@ -17,41 +15,14 @@ export default function App() {
       <Workspace user={LOCAL_USER} store={store} onSignOut={undefined} />
     );
   }
-  return <SupabaseApp />;
-}
-
-function SupabaseApp() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    supabase!.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
-    const { data: sub } = supabase!.auth.onAuthStateChange((_e, s) => {
-      setSession(s);
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
-
-  const user: AppUser | null = session?.user
-    ? { id: session.user.id, email: session.user.email ?? "" }
-    : null;
-
+  const canEdit = Boolean(editKey);
+  const user: AppUser = {
+    id: canEdit ? "link-editor" : "public-reader",
+    email: canEdit ? "링크 편집자" : "읽기 전용",
+  };
   const store = useMemo(
-    () => (user ? createSupabaseStore(supabase!, user.id, user.email) : null),
-    [user?.id]
+    () => createSupabaseStore(supabase!, canEdit),
+    [canEdit]
   );
-
-  if (loading) return <div className="center-screen">불러오는 중…</div>;
-  if (!user || !store) return <Login />;
-
-  return (
-    <Workspace
-      user={user}
-      store={store}
-      onSignOut={() => supabase!.auth.signOut()}
-    />
-  );
+  return <Workspace user={user} store={store} />;
 }

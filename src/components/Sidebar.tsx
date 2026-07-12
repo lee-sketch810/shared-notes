@@ -5,6 +5,7 @@ interface Props {
   selectedId: string | null;
   userEmail: string;
   mode: "supabase" | "local";
+  canEdit: boolean;
   onSelect: (id: string) => void;
   onHome: () => void;
   onCreate: () => void;
@@ -27,6 +28,7 @@ export default function Sidebar({
   selectedId,
   userEmail,
   mode,
+  canEdit,
   onSelect,
   onHome,
   onCreate,
@@ -39,9 +41,11 @@ export default function Sidebar({
         <button className="sidebar-logo" onClick={onHome} title="홈으로 이동">
           📝 밥 코딩 공유 노트
         </button>
-        <button className="btn-small" onClick={onCreate} title="새 노트">
-          +
-        </button>
+        {canEdit && (
+          <button className="btn-small" onClick={onCreate} title="새 노트">
+            +
+          </button>
+        )}
       </div>
 
       {mode === "local" && (
@@ -63,7 +67,7 @@ export default function Sidebar({
             <div className="note-item-main">
               <span className="note-item-title">
                 {n.title || "제목 없음"}
-                {n.ownerEmail !== userEmail && (
+                {mode === "local" && n.ownerEmail !== userEmail && (
                   <span className="shared-tag" title={`${n.ownerEmail} 님이 공유`}>
                     공유됨
                   </span>
@@ -71,16 +75,18 @@ export default function Sidebar({
               </span>
               <span className="note-item-time">{formatTime(n.updatedAt)}</span>
             </div>
-            <button
-              className="note-item-delete"
-              title="삭제"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(n.id);
-              }}
-            >
-              ×
-            </button>
+            {canEdit && (
+              <button
+                className="note-item-delete"
+                title="삭제"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(n.id);
+                }}
+              >
+                ×
+              </button>
+            )}
           </li>
         ))}
       </ul>

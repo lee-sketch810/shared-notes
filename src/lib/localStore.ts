@@ -85,6 +85,7 @@ export function createLocalStore(userEmail: string): NoteStore {
 
   return {
     mode: "local",
+    canEdit: true,
     actorId,
 
     // 로컬 모드는 생성자에서 이미 동기적으로 시드됨 → no-op
