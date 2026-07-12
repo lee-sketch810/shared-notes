@@ -23,6 +23,21 @@ interface Props {
 type SaveState = "idle" | "dirty" | "saving" | "saved";
 
 const SAVE_DEBOUNCE_MS = 800;
+const MAX_EMBEDDED_FILE_SIZE = 5 * 1024 * 1024;
+
+function fileToDataUrl(file: File): Promise<string> {
+  if (file.size > MAX_EMBEDDED_FILE_SIZE) {
+    window.alert("붙여넣을 수 있는 이미지의 최대 크기는 5MB입니다.");
+    return Promise.reject(new Error("file too large"));
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function EditorPane({
   note,
@@ -40,6 +55,7 @@ export default function EditorPane({
 
   const editor = useCreateBlockNote({
     dictionary: ko,
+    uploadFile: fileToDataUrl,
     initialContent:
       note.content && note.content.length > 0 ? note.content : undefined,
   });
