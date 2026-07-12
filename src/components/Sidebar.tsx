@@ -42,6 +42,8 @@ export default function Sidebar({
 }: Props) {
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [readLinkCopied, setReadLinkCopied] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const selectedNote = notes.find((item) => item.id === selectedId);
 
   function copyReadOnlyLink() {
     const url = new URL(window.location.href);
@@ -64,17 +66,40 @@ export default function Sidebar({
   }
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${mobileMenuOpen ? "mobile-menu-open" : ""}`}>
       <div className="sidebar-header">
         <button className="sidebar-logo" onClick={onHome} title="홈으로 이동">
           📝 밥 코딩 공유 노트
         </button>
-        {canEdit && (
-          <button className="btn-small" onClick={onCreate} title="새 노트">
-            +
+        <div className="sidebar-header-actions">
+          {canEdit && (
+            <button className="btn-small" onClick={onCreate} title="새 노트">
+              +
+            </button>
+          )}
+          <button
+            className="mobile-menu-toggle"
+            type="button"
+            aria-expanded={mobileMenuOpen}
+            aria-controls="note-navigation"
+            onClick={() => setMobileMenuOpen((open) => !open)}
+          >
+            <span aria-hidden="true">☰</span>
+            <span>목록</span>
+            <span className="mobile-menu-count">{notes.length}</span>
           </button>
-        )}
+        </div>
       </div>
+
+      <button
+        className="mobile-current-note"
+        type="button"
+        onClick={() => setMobileMenuOpen(true)}
+      >
+        <span className="mobile-current-label">현재 문서</span>
+        <strong>{selectedNote?.title || "문서를 선택하세요"}</strong>
+        <span className="mobile-current-chevron" aria-hidden="true">⌄</span>
+      </button>
 
       {mode === "local" && (
         <div className="demo-badge" title="Supabase 키를 설정하면 실제 공유 모드로 전환됩니다">
@@ -82,6 +107,19 @@ export default function Sidebar({
         </div>
       )}
 
+      <div
+        className="mobile-menu-backdrop"
+        aria-hidden="true"
+        onClick={() => setMobileMenuOpen(false)}
+      />
+
+      <div className="mobile-menu-panel" id="note-navigation">
+        <div className="mobile-menu-heading">
+          <strong>전체 문서</strong>
+          <button type="button" onClick={() => setMobileMenuOpen(false)} aria-label="목록 닫기">
+            ×
+          </button>
+        </div>
       <ul className="note-list">
         {notes.length === 0 && (
           <li className="note-list-empty">아직 노트가 없어요</li>
@@ -111,7 +149,10 @@ export default function Sidebar({
               if (sourceId && sourceId !== n.id) onMove(sourceId, n.id);
             }}
             onDragEnd={() => setDragOverId(null)}
-            onClick={() => onSelect(n.id)}
+            onClick={() => {
+              onSelect(n.id);
+              setMobileMenuOpen(false);
+            }}
           >
             {canEdit && n.id !== HOME_NOTE_ID && (
               <span className="note-drag-handle" title="끌어서 순서 변경">
@@ -157,6 +198,7 @@ export default function Sidebar({
             로그아웃
           </button>
         )}
+      </div>
       </div>
     </aside>
   );
