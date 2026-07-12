@@ -173,7 +173,8 @@ export default function Sidebar({
             {canEdit && (
               <button
                 className="note-item-delete"
-                title="삭제"
+                title={`${n.title || "제목 없음"} 삭제`}
+                aria-label={`${n.title || "제목 없음"} 삭제`}
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete(n.id);

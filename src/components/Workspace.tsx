@@ -91,7 +91,12 @@ export default function Workspace({ user, store, onSignOut }: Props) {
   }
 
   async function handleDelete(id: string) {
-    if (!window.confirm("이 노트를 삭제할까요?")) return;
+    const target = notes.find((item) => item.id === id);
+    const title = target?.title?.trim() || "제목 없음";
+    const confirmed = window.confirm(
+      `“${title}” 문서를 삭제할까요?\n\n확인을 누르면 문서가 삭제됩니다.`
+    );
+    if (!confirmed) return;
     await store.deleteNote(id);
     if (selectedId === id) {
       setSelectedId(null);
