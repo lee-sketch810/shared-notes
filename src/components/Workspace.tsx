@@ -123,6 +123,9 @@ export default function Workspace({ user, store, onSignOut }: Props) {
         userEmail={user.email}
         mode={store.mode}
         onSelect={openNote}
+        onHome={() => {
+          if (notes.length > 0) void openNote(notes[0].id);
+        }}
         onCreate={handleCreate}
         onDelete={handleDelete}
         onSignOut={onSignOut}

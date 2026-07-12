@@ -1,10 +1,16 @@
 import { useEffect, useRef, useState } from "react";
+import type { MouseEvent } from "react";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import { ko } from "@blocknote/core/locales";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import type { Note, NoteStore } from "../lib/types";
+import {
+  getLocalFile,
+  LOCAL_FILE_PREFIX,
+  saveLocalFile,
+} from "../lib/localFiles";
 
 interface Props {
   note: Note;
@@ -27,7 +33,9 @@ export default function EditorPane({
 }: Props) {
   const [title, setTitle] = useState(note.title);
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [isAddingFile, setIsAddingFile] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const pendingRef = useRef<{ title?: string; content?: unknown } | null>(null);
 
   const editor = useCreateBlockNote({
@@ -57,6 +65,61 @@ export default function EditorPane({
     }
   }
 
+  async function downloadFileBlock(event: MouseEvent<HTMLDivElement>) {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    const fileBlock = target.closest<HTMLElement>(
+      '[data-content-type="file"][data-file-block]'
+    );
+    if (!fileBlock) return;
+
+    const url = fileBlock.dataset.url;
+    if (!url) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    let downloadUrl = url;
+    let fileName = fileBlock.dataset.name || "download";
+
+    if (url.startsWith(LOCAL_FILE_PREFIX)) {
+      const storedFile = await getLocalFile(url);
+      if (!storedFile) {
+        window.alert("저장된 파일을 찾을 수 없습니다.");
+        return;
+      }
+      downloadUrl = URL.createObjectURL(storedFile.blob);
+      fileName = storedFile.name;
+    }
+
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    if (downloadUrl !== url) {
+      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+    }
+  }
+
+  async function addLocalFile(file: File) {
+    setIsAddingFile(true);
+    try {
+      const url = await saveLocalFile(file);
+      const lastBlock = editor.document[editor.document.length - 1];
+      editor.insertBlocks(
+        [{ type: "file", props: { url, name: file.name } }],
+        lastBlock,
+        "after"
+      );
+    } finally {
+      setIsAddingFile(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
   // 노트를 떠날 때(언마운트) 남은 변경사항 즉시 저장
   useEffect(() => {
     return () => {
@@ -77,6 +140,27 @@ export default function EditorPane({
           {saveState === "dirty" && "수정됨"}
           {saveState === "saved" && "저장됨 ✓"}
         </span>
+        {store.mode === "local" && (
+          <>
+            <input
+              ref={fileInputRef}
+              className="file-input-hidden"
+              type="file"
+              accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void addLocalFile(file);
+              }}
+            />
+            <button
+              className="btn-small"
+              disabled={isAddingFile}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {isAddingFile ? "추가 중…" : "파일 추가"}
+            </button>
+          </>
+        )}
         {canShare && store.mode === "supabase" && (
           <button className="btn-small" onClick={onShare}>
             공유
@@ -101,11 +185,13 @@ export default function EditorPane({
           scheduleSave({ title: e.target.value });
         }}
       />
-      <BlockNoteView
-        editor={editor}
-        theme="light"
-        onChange={() => scheduleSave({ content: editor.document })}
-      />
+      <div className="editor-content" onClickCapture={downloadFileBlock}>
+        <BlockNoteView
+          editor={editor}
+          theme="light"
+          onChange={() => scheduleSave({ content: editor.document })}
+        />
+      </div>
     </div>
   );
 }

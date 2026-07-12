@@ -6,6 +6,7 @@ interface Props {
   userEmail: string;
   mode: "supabase" | "local";
   onSelect: (id: string) => void;
+  onHome: () => void;
   onCreate: () => void;
   onDelete: (id: string) => void;
   onSignOut?: () => void;
@@ -27,6 +28,7 @@ export default function Sidebar({
   userEmail,
   mode,
   onSelect,
+  onHome,
   onCreate,
   onDelete,
   onSignOut,
@@ -34,7 +36,9 @@ export default function Sidebar({
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <span className="sidebar-logo">📝 밥 코딩 공유 노트</span>
+        <button className="sidebar-logo" onClick={onHome} title="홈으로 이동">
+          📝 밥 코딩 공유 노트
+        </button>
         <button className="btn-small" onClick={onCreate} title="새 노트">
           +
         </button>

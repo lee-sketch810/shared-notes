@@ -25,6 +25,10 @@ input {
   font-family: inherit;
 }
 
+.file-input-hidden {
+  display: none;
+}
+
 .center-screen {
   height: 100%;
   display: flex;
@@ -130,8 +134,19 @@ input {
 }
 
 .sidebar-logo {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   font-weight: 700;
   font-size: 15px;
+}
+
+.sidebar-logo:hover {
+  color: #2563eb;
 }
 
 .demo-badge {
@@ -309,6 +324,21 @@ input {
 }
 
 /* BlockNote 여백 미세 조정 */
+
+.editor-content [data-content-type="file"][data-file-block] .bn-file-block-content-wrapper {
+  cursor: pointer;
+}
+
+.editor-content [data-content-type="file"][data-file-block] .bn-file-block-content-wrapper::after {
+  content: "다운로드";
+  margin-left: auto;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
 .editor-pane .bn-container {
   --bn-colors-editor-background: transparent;
 }
