@@ -3,6 +3,7 @@ import type { MouseEvent } from "react";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import { ko } from "@blocknote/core/locales";
+import type { PartialBlock } from "@blocknote/core";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import type { Note, NoteStore } from "../lib/types";
@@ -23,11 +24,11 @@ interface Props {
 type SaveState = "idle" | "dirty" | "saving" | "saved";
 
 const SAVE_DEBOUNCE_MS = 800;
-const MAX_EMBEDDED_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_EMBEDDED_FILE_SIZE = 10 * 1024 * 1024;
 
 function fileToDataUrl(file: File): Promise<string> {
   if (file.size > MAX_EMBEDDED_FILE_SIZE) {
-    window.alert("붙여넣을 수 있는 이미지의 최대 크기는 5MB입니다.");
+    window.alert("추가할 수 있는 파일의 최대 크기는 10MB입니다.");
     return Promise.reject(new Error("file too large"));
   }
 
@@ -60,24 +61,45 @@ export default function EditorPane({
       note.content && note.content.length > 0 ? note.content : undefined,
   });
 
+  function blockTypeForFile(file: File): "image" | "video" | "audio" | "file" {
+    if (file.type.startsWith("image/")) return "image";
+    if (file.type.startsWith("video/")) return "video";
+    if (file.type.startsWith("audio/")) return "audio";
+    return "file";
+  }
+
+  async function insertFile(file: File) {
+    setIsAddingFile(true);
+    try {
+      const blockType = blockTypeForFile(file);
+      const url =
+        store.mode === "local" && blockType === "file"
+          ? await saveLocalFile(file)
+          : await fileToDataUrl(file);
+      const lastBlock = editor.document[editor.document.length - 1];
+      const block = {
+        type: blockType,
+        props: { url, name: file.name },
+      } as PartialBlock;
+      editor.insertBlocks([block], lastBlock, "after");
+    } finally {
+      setIsAddingFile(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
   useEffect(() => {
     if (!store.canEdit) return;
 
     const handleImagePaste = (event: ClipboardEvent) => {
-      const target = event.target;
-      if (target instanceof Element && target.closest(".ProseMirror")) return;
-
-      const imageItem = Array.from(event.clipboardData?.items ?? []).find(
-        (item) => item.kind === "file" && item.type.startsWith("image/")
+      const fileItem = Array.from(event.clipboardData?.items ?? []).find(
+        (item) => item.kind === "file"
       );
-      const file = imageItem?.getAsFile();
+      const file = fileItem?.getAsFile();
       if (!file) return;
 
       event.preventDefault();
-      void fileToDataUrl(file).then((url) => {
-        const lastBlock = editor.document[editor.document.length - 1];
-        editor.insertBlocks([{ type: "image", props: { url } }], lastBlock, "after");
-      });
+      void insertFile(file);
     };
 
     document.addEventListener("paste", handleImagePaste, true);
@@ -144,22 +166,6 @@ export default function EditorPane({
     }
   }
 
-  async function addLocalFile(file: File) {
-    setIsAddingFile(true);
-    try {
-      const url = await saveLocalFile(file);
-      const lastBlock = editor.document[editor.document.length - 1];
-      editor.insertBlocks(
-        [{ type: "file", props: { url, name: file.name } }],
-        lastBlock,
-        "after"
-      );
-    } finally {
-      setIsAddingFile(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  }
-
   // 노트를 떠날 때(언마운트) 남은 변경사항 즉시 저장
   useEffect(() => {
     return () => {
@@ -180,16 +186,16 @@ export default function EditorPane({
           {saveState === "dirty" && "수정됨"}
           {saveState === "saved" && "저장됨 ✓"}
         </span>
-        {store.canEdit && store.mode === "local" && (
+        {store.canEdit && (
           <>
             <input
               ref={fileInputRef}
               className="file-input-hidden"
               type="file"
-              accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip"
+              accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip"
               onChange={(event) => {
                 const file = event.target.files?.[0];
-                if (file) void addLocalFile(file);
+                if (file) void insertFile(file);
               }}
             />
             <button
@@ -197,7 +203,7 @@ export default function EditorPane({
               disabled={isAddingFile}
               onClick={() => fileInputRef.current?.click()}
             >
-              {isAddingFile ? "추가 중…" : "파일 추가"}
+              {isAddingFile ? "추가 중…" : "파일·미디어 추가"}
             </button>
           </>
         )}
